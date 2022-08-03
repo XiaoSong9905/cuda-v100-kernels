@@ -18,7 +18,3 @@ transpose/
 // General matrix multiply C = A * B
 sgemm/
 ```
-
-
-
-2. Github How to optimize in GPU [link](https://github.com/Liu-xiandong/How_to_optimize_in_GPU)
