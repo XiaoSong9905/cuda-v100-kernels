@@ -10,10 +10,10 @@ make clean
 
 * run
 ```shell
-./reduce.out (device_id) (shift)
+./reduce.out (device_id) (num_elems)
 
-# example reduce 2^13 on device 1
-./reduce.out 1 13
+# example reduce 1024 on device 1
+./reduce.out 1 1024
 ```
 
 ## Performence
