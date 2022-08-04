@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cuda_runtime.h>
+#include <sys/time.h>
 
 #define CUDA_CHECK(call)                                                            \
 {                                                                              \
@@ -11,6 +12,16 @@
         fprintf(stderr, "code: %d, reason: %s\n", error,                       \
                 cudaGetErrorString(error));                                    \
     }                                                                          \
+}
+
+inline float compute_bandwidth_ms( int data_in_bytes, float time_in_milliseconds )
+{
+    return float( data_in_bytes ) / 1e6 / time_in_milliseconds;
+}
+
+inline float compute_bandwidth_s( int data_in_bytes, float time_in_seconds )
+{
+    return float( data_in_bytes ) / 1e9 / time_in_seconds;
 }
 
 void print_dev_prop( )

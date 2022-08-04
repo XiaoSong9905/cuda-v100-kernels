@@ -5,8 +5,6 @@
 
 // TODO
 // 1. use nvprof to analysis num transaction per memory request
-// 2. unroll kernel for higher efficency
-// 3. different block dim settings
 
 void transpose_host( const float* h_mtx, float* h_ref_trans_mtx, int nx, int ny )
 {
@@ -19,11 +17,11 @@ void transpose_host( const float* h_mtx, float* h_ref_trans_mtx, int nx, int ny 
     }
 }
 
-void init_data( float* h_mtx, int size )
+void init_data( float* ptr, int size )
 {
     for ( int i = 0; i < size; ++i )
     {
-        h_mtx[ i ] = (float)(rand() & 0xFF) / 10.0f;
+        ptr[ i ] = (float)(rand() & 0xFF) / 10.0f;
     }
 }
 
@@ -38,11 +36,6 @@ bool check_correctness( const float* h_ref_trans_mtx, const float* h_trans_mtx, 
         }
     }
     return true;
-}
-
-float compute_bandwidth( int data_in_bytes, float time_in_milliseconds )
-{
-    return float( data_in_bytes ) / 1e6 / time_in_milliseconds;
 }
 
 // Note: below code assume blockDim.x & blockDim.y < 32
@@ -561,7 +554,7 @@ int main( int argc, char** argv )
     CUDA_CHECK( cudaEventSynchronize( t_stop ) );
     CUDA_CHECK( cudaEventElapsedTime( &t_milliseconds, t_start, t_stop ) );
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("cudaMemcpy Effective bandwidth %.5f GB/sec\n\n", bandwidth );
 
     // copy matrix
@@ -574,7 +567,7 @@ int main( int argc, char** argv )
     CUDA_CHECK( cudaEventSynchronize( t_stop ) );
     CUDA_CHECK( cudaEventElapsedTime( &t_milliseconds, t_start, t_stop ) );
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Copy blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid.x, grid.y, bandwidth );
 
@@ -588,7 +581,7 @@ int main( int argc, char** argv )
     CUDA_CHECK( cudaEventSynchronize( t_stop ) );
     CUDA_CHECK( cudaEventElapsedTime( &t_milliseconds, t_start, t_stop ) );
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Copy + Texture cache blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid.x, grid.y, bandwidth );
 
@@ -602,7 +595,7 @@ int main( int argc, char** argv )
     CUDA_CHECK( cudaEventSynchronize( t_stop ) );
     CUDA_CHECK( cudaEventElapsedTime( &t_milliseconds, t_start, t_stop ) );
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Copy + Unroll 2 blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid_unroll2.x, grid_unroll2.y, bandwidth );
 
@@ -616,7 +609,7 @@ int main( int argc, char** argv )
     CUDA_CHECK( cudaEventSynchronize( t_stop ) );
     CUDA_CHECK( cudaEventElapsedTime( &t_milliseconds, t_start, t_stop ) );
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Copy + Unroll 4 blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid_unroll4.x, grid_unroll4.y, bandwidth );
 
@@ -634,7 +627,7 @@ int main( int argc, char** argv )
     if ( !check_correctness( h_trans_mtx, h_ref_trans_mtx, n_elems ) )
         printf("Transpose Result Incorrect\n");
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Naive transpose blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid.x, grid.y, bandwidth );
 
@@ -652,7 +645,7 @@ int main( int argc, char** argv )
     if ( !check_correctness( h_trans_mtx, h_ref_trans_mtx, n_elems ) )
         printf("Transpose Result Incorrect\n");
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Naive transpose + Texture cache blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid.x, grid.y, bandwidth );
 
@@ -670,7 +663,7 @@ int main( int argc, char** argv )
     if ( !check_correctness( h_trans_mtx, h_ref_trans_mtx, n_elems ) )
         printf("Transpose Result Incorrect\n");
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Naive transpose + Unroll 2 blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid_unroll2.x, grid_unroll2.y, bandwidth );
 
@@ -688,7 +681,7 @@ int main( int argc, char** argv )
     if ( !check_correctness( h_trans_mtx, h_ref_trans_mtx, n_elems ) )
         printf("Transpose Result Incorrect\n");
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Naive transpose + Unroll 4 blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid_unroll4.x, grid_unroll4.y, bandwidth );
 
@@ -706,7 +699,7 @@ int main( int argc, char** argv )
     if ( !check_correctness( h_trans_mtx, h_ref_trans_mtx, n_elems ) )
         printf("Transpose Result Incorrect\n");
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Share Mem blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid.x, grid.y, bandwidth );
 
@@ -724,7 +717,7 @@ int main( int argc, char** argv )
     if ( !check_correctness( h_trans_mtx, h_ref_trans_mtx, n_elems ) )
         printf("Transpose Result Incorrect\n");
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Share Mem + Dynamic blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid.x, grid.y, bandwidth );
 
@@ -742,7 +735,7 @@ int main( int argc, char** argv )
     if ( !check_correctness( h_trans_mtx, h_ref_trans_mtx, n_elems ) )
         printf("Transpose Result Incorrect\n");
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Share Mem + Unroll 2 blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid_unroll2.x, grid_unroll2.y, bandwidth );
 
@@ -761,7 +754,7 @@ int main( int argc, char** argv )
     // if ( !check_correctness( h_trans_mtx, h_ref_trans_mtx, n_elems ) )
     //     printf("Transpose Result Incorrect\n");
 
-    // bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    // bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     // printf("Share Mem + Unroll 2 + Reuse blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
     //     block.x, block.y, grid_unroll2.x, grid_unroll2.y, bandwidth );
 
@@ -779,7 +772,7 @@ int main( int argc, char** argv )
     if ( !check_correctness( h_trans_mtx, h_ref_trans_mtx, n_elems ) )
         printf("Transpose Result Incorrect\n");
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Share Mem + Pad blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid.x, grid.y, bandwidth );
 
@@ -797,7 +790,7 @@ int main( int argc, char** argv )
     if ( !check_correctness( h_trans_mtx, h_ref_trans_mtx, n_elems ) )
         printf("Transpose Result Incorrect\n");
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Share Mem + Pad + Unroll 2 blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid_unroll2.x, grid_unroll2.y, bandwidth );
 
@@ -815,7 +808,7 @@ int main( int argc, char** argv )
     if ( !check_correctness( h_trans_mtx, h_ref_trans_mtx, n_elems ) )
         printf("Transpose Result Incorrect\n");
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Share Mem + Pad + Texture Cache blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid.x, grid.y, bandwidth );
 
@@ -835,7 +828,7 @@ int main( int argc, char** argv )
     if ( !check_correctness( h_trans_mtx, h_ref_trans_mtx, n_elems ) )
         printf("Transpose Result Incorrect\n");
 
-    bandwidth = compute_bandwidth( n_bytes * 2, t_milliseconds );
+    bandwidth = compute_bandwidth_ms( n_bytes * 2, t_milliseconds );
     printf("Share Mem + Pad + Unroll 4 blockDim (x %d, y %d), gridDim (x %d, y %d) Effective bandwidth %.5f GB/sec\n\n", \
         block.x, block.y, grid_unroll4.x, grid_unroll4.y, bandwidth );
 
@@ -845,5 +838,6 @@ int main( int argc, char** argv )
     free( h_trans_mtx );
     CUDA_CHECK( cudaFree( d_mtx ) );
     CUDA_CHECK( cudaFree( d_trans_mtx ) );
-
+    CUDA_CHECK( cudaEventDestroy( t_start ) );
+    CUDA_CHECK( cudaEventDestroy( t_end ) );
 }
